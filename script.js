@@ -98,9 +98,24 @@ function fetchData() {
     fetch("GeoJSON Pakai/Batas Kecamatan Kabupaten Sleman.geojson").then(res => res.json()).then(data => L.geoJSON(data, { style: { color: "#FF0000", weight: 2 }}).bindPopup("Batas Kecamatan").addTo(batasKecamatanLayer));
     fetch("GeoJSON Pakai/Batas_Desa_Kabupaten_Sleman.geojson").then(res => res.json()).then(data => L.geoJSON(data, { style: { color: "#FF6600", weight: 2 }}).bindPopup("Batas Desa").addTo(batasDesaLayer));
     fetch("GeoJSON Pakai/Kesesuaian Lahan Per Desa Di Sleman.geojson").then(res => res.json()).then(data => L.geoJSON(data, { style: { color: "#008000", weight: 2 }}).bindPopup("Kesesuaian Lahan per Desa").addTo(kesesuaianLahanDesaLayer));
-    fetch("GeoJSON Pakai/Kesesuaian Lahan Per Desa Yang Belum Terjangkau Rumah Sakit.geojson").then(res => res.json()).then(data => L.geoJSON(data, { style: { color: "#00CC66", weight: 2 }}).bindPopup("Lahan Desa Belum Terjangkau RS").addTo(lahanBelumTerjangkauLayer));
     
-    // PERBAIKAN: Mengembalikan detail popup rumah sakit
+    // PERBAIKAN FINAL: Menggunakan nama kolom "Luas" dan menampilkannya sebagai teks
+    fetch("GeoJSON Pakai/Kesesuaian Lahan Per Desa Yang Belum Terjangkau Rumah Sakit.geojson").then(res => res.json()).then(data => {
+        L.geoJSON(data, {
+            style: { color: "#00CC66", weight: 2 },
+            onEachFeature: (feature, layer) => {
+                const { DESA, KECAMATAN, KAB_KOTA, Luas } = feature.properties;
+                const popupContent = `
+                    <b>Desa:</b> ${DESA || 'N/A'}<br>
+                    <b>Kecamatan:</b> ${KECAMATAN || 'N/A'}<br>
+                    <b>Kabupaten/Kota:</b> ${KAB_KOTA || 'N/A'}<br>
+                    <b>Luas:</b> ${Luas || 'N/A'}
+                `;
+                layer.bindPopup(popupContent);
+            }
+        }).addTo(lahanBelumTerjangkauLayer);
+    });
+    
     fetch("rumahsakit.geojson").then(res => res.json()).then(data => {
         L.geoJSON(data, {
             onEachFeature: (feature, layer) => {
@@ -131,7 +146,7 @@ function fetchData() {
 let bufferActive = false, measureActive = false, markerActive = false;
 let bufferLayer = L.layerGroup().addTo(map);
 let markerLayer = L.layerGroup().addTo(map);
-let measureLayer = L.layerGroup().addTo(map);
+let tempLine; // dideklarasikan di sini agar bisa diakses oleh toggleMeasure dan map.on('click')
 
 function toggleEditMenu() {
   const menu = document.getElementById("editMenu");
@@ -147,7 +162,10 @@ function toggleBuffer() {
 function toggleMeasure() {
   measureActive = !measureActive;
   bufferActive = markerActive = false;
-  if (tempLine) { measureLayer.removeLayer(tempLine); tempLine = null; }
+  if (tempLine) { 
+      measureLayer.removeLayer(tempLine); 
+      tempLine = null; 
+  }
   updateStatus();
 }
 
